@@ -11,6 +11,10 @@
   let soiltypequery_result = [];
   let texturequery_result = [];
 
+  const special_chars = [
+    '₁', '₂', '₃', '₄', '₅', '⁰'
+  ];
+
   // async data fetching function
   async function querySoilType() {
     soiltype_loading = true;
@@ -170,6 +174,10 @@
               class="form-control"
               id="texturequery"
               bind:value={texturequery_tq} />
+            
+            {#each special_chars as cha}
+              <a on:click={e => texturequery_tq = texturequery_tq.concat(cha)} class="btn btn-outline-secondary btn-sm">{cha}</a>
+            {/each}
           </div>
 
           {#if texturequery_error.length > 0}
