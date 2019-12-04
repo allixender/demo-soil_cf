@@ -2,45 +2,85 @@
   let soiltypequery_tq = "M''";
   let texturequery_tq = "ls";
 
-  let soiltypequery_result = {};
-  let texturequery_result = {};
+  let soiltype_loading = false;
+  let texture_loading = false;
+  
+  let soiltypequery_error = "";
+  let texturequery_error = "";
+
+  let soiltypequery_result = [];
+  let texturequery_result = [];
 
   // async data fetching function
   async function querySoilType() {
-    const req_data = JSON.stringify({ 'tq': soiltypequery_tq });
-    const response = await fetch(
-      "https://europe-west1-glomodat.cloudfunctions.net/estsoil_cf",
-      {
-        method: "POST",
-        mode: 'cors',
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: req_data
-      }
-    );
+    soiltype_loading = true;
+    const q = { 'tq': soiltypequery_tq };
+    const req_data = JSON.stringify(q);
 
-    const data = await response.json();
-    return data;
-  };
+    try {
+      const response = await fetch(
+        "https://europe-west1-glomodat.cloudfunctions.net/estsoil_cf",
+        {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: req_data
+        }
+      );
+
+      const data = await response.json();
+      soiltypequery_result = [];
+      for (const [key, value] of Object.entries(data)) {
+        // console.log(key, value);
+        soiltypequery_result.push({"name": key, "value": value});
+      }
+      soiltype_loading = false;
+      // console.log(data)
+      return data;
+    } catch (err) {
+      // catches errors both in fetch and response.json
+      console.log(err.toString())
+      soiltype_loading = false;
+      soiltypequery_error = `${err.toString()}`;
+    }
+  }
 
   async function queryTexture() {
-    const req_data = JSON.stringify({ 'tq': texturequery_tq });
-    const response = await fetch(
-      "https://europe-west1-glomodat.cloudfunctions.net/estsoil_lm",
-      {
-        method: "POST",
-        mode: 'cors',
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: req_data
-      }
-    );
+    texture_loading = true;
+    const q = { 'tq': texturequery_tq };
+    const req_data = JSON.stringify(q);
 
-    const data = await response.json();
-    return data;
-  };
+    try {
+      const response = await fetch(
+        "https://europe-west1-glomodat.cloudfunctions.net/estsoil_lm",
+        {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: req_data
+        }
+      );
+
+      const data = await response.json();
+      texturequery_result = [];
+      for (const [key, value] of Object.entries(data)) {
+        // console.log(key, value);
+        texturequery_result.push({"name": key, "value": value});
+      }
+      // console.log(data)
+      texture_loading = false;
+      return data;
+    } catch (err) {
+      // catches errors both in fetch and response.json
+      console.log(err.toString())
+      texture_loading = false;
+      texturequery_error = `${err.toString()}`;
+    }
+  }
 </script>
 
 <style>
@@ -68,7 +108,7 @@
 <main>
   <div class="container-fluid">
     <div class="row">
-      <div class="col-4">
+      <div class="col-8">
         <h1>Soil Texture Demo App</h1>
 
         <p>
@@ -90,52 +130,70 @@
             <input
               type="text"
               class="form-control"
-               bind:value={soiltypequery_tq}
+              bind:value={soiltypequery_tq}
               id="soiltypequery"
               aria-describedby="SoilTypeHelp" />
-            <small id="SoilTypeHelp" class="form-text text-muted">
-              We'll never share your email with anyone else.
-            </small>
+            {#if soiltypequery_error.length > 0}
+              <small id="SoilTypeHelp" class="form-text" style="color: red;">
+                {soiltypequery_error}
+              </small>
+            {/if}
           </div>
-          <a on:click={querySoilType} class="btn btn-primary">Submit</a>
+          <p>
+            <a on:click={querySoilType} class="btn btn-primary">Submit</a>
+            {#if soiltype_loading}
+            <div class="spinner-border" role="status">
+              <span class="sr-only">Querying...</span>
+            </div>
+            {/if}
+          </p>
         </form>
 
         <div class="card">
-          {#if soiltypequery_result.soil_type}
-            <div class="card-header">Featured</div>
+            <div class="card-header">{soiltypequery_tq}</div>
             <ul class="list-group list-group-flush">
-              <li class="list-group-item">Cras justo odio</li>
+            {#each soiltypequery_result as elem}
+              <li class="list-group-item">{elem.name} - {elem.value}</li>
+            {/each}
+              
             </ul>
-          {/if}
         </div>
 
       </div>
-    </div>
 
-    <div class="row">
       <div class="col-4">
         <form>
           <div class="form-group">
             <label for="texturequery">Texture / Lõimis</label>
-            <input type="text" class="form-control" id="texturequery" bind:value={texturequery_tq} />
+            <input
+              type="text"
+              class="form-control"
+              id="texturequery"
+              bind:value={texturequery_tq} />
           </div>
 
-          <small id="textureHelp" class="form-text text-muted">
-            We'll never share your email with anyone else.
-          </small>
+          {#if texturequery_error.length > 0}
+            <small id="TextureQueryHelp" class="form-text" style="color: red;">
+              {texturequery_error}
+            </small>
+          {/if}
 
-          <a on:click={queryTexture} class="btn btn-primary">Submit</a>
+          <p>
+            <a on:click={queryTexture} class="btn btn-primary">Submit</a>
+            {#if texture_loading}
+            <div class="spinner-border" role="status">
+              <span class="sr-only">Querying...</span>
+            </div>
+            {/if}
+          </p>
         </form>
 
         <div class="card">
-          {#if texturequery_result.Loimis1}
-            <div class="card-header">Featured</div>
+          <div class="card-header">{texturequery_tq}</div>
             <ul class="list-group list-group-flush">
-              <li class="list-group-item">Cras justo odio</li>
-              <li class="list-group-item">Dapibus ac facilisis in</li>
-              <li class="list-group-item">Vestibulum at eros</li>
-            </ul>
-          {/if}
+            {#each texturequery_result as elem}
+              <li class="list-group-item">{elem.name} - {elem.value}</li>
+            {/each}
         </div>
       </div>
     </div>
